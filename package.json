@@ -1,0 +1,21 @@
+{
+  "name": "oc-check",
+  "version": "1.0.0",
+  "description": "Quick check for OCP Clusters",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "start:dev": "nodemon index.js"
+  },
+  "author": "Nino Lopez",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "chalk": "^4.1.1",
+    "nodemon": "^2.0.7",
+    "ora": "^5.4.0",
+    "prompt-sync": "^4.2.0",
+    "util": "^0.12.3"
+  }
+}
