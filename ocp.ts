@@ -4,7 +4,7 @@ import { ProjectsSchema } from "./types/ProjectsSchema";
 const path = require('path');
 
 
-export const logIntoOCP = async (username: string, password: string) => {
+export const logIntoOCP = async (username: string, password: string): Promise<void> => {
 
     const loginArgs = ['login', '-u', username, '-p', password];
     await runCommand("oc", loginArgs);
@@ -26,18 +26,18 @@ export const getOCPProjects = async (): Promise<string[]> => {
     return projectNames;
 }
 
-export const switchOCPProjects = async (projectName: string) => {
+export const switchOCPProjects = async (projectName: string): Promise<void> => {
     const switchProjectsArgs: string[] = ["project", projectName];
     await runCommand('oc', switchProjectsArgs);
 }
 
-export const portForwardPod = async (podName: string, localPort: number, remotePort: number) => {
+export const portForwardPod = async (podName: string, localPort: number, remotePort: number): Promise<void> => {
     const portForwardArgs = ["port-forward", podName, `${localPort}:${remotePort}`]
     console.log(`Port Fowarding to ${podName}...`)
     await runCommand("oc", portForwardArgs);
 }
 
-export const restorePostgresDatabase = async (podName: string, backupFilePath: string, databaseName: string) => {
+export const restorePostgresDatabase = async (podName: string, backupFilePath: string, databaseName: string): Promise<void> => {
 
     const backupFileName = path.basename(backupFilePath);
     const copyFileArgs = ["cp", `${podName}:/tmp/${backupFileName}`, `${backupFilePath}`];

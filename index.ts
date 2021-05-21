@@ -2,13 +2,14 @@ import inquirer = require('inquirer');
 import { getOCPPods, getOCPProjects, switchOCPProjects, logIntoOCP, portForwardPod } from './ocp'
 const prompt = require("prompt-sync")();
 
-const args = process.argv;
-const command = args[2];
+
+const args: string[] = process.argv;
+const command: string = args[2];
 
 const run = async () => {
 	try {
-		const username = prompt('OCP Username: ');
-		const password = prompt('OCP Password: ');
+		const username: string = prompt('OCP Username: ');
+		const password: string = prompt('OCP Password: ');
 		console.clear();
 
 		console.log("Logging into OCP...")
