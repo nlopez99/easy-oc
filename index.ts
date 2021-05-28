@@ -1,42 +1,49 @@
 import inquirer = require('inquirer');
-import { getOCPPods, getOCPProjects, switchOCPProjects, logIntoOCP, portForwardPod } from './ocp'
-const prompt = require("prompt-sync")();
-
+import {
+    getOCPPods,
+    getOCPProjects,
+    switchOCPProjects,
+    logIntoOCP,
+    portForwardPod,
+    isUserLoggedIn,
+    restorePostgresDatabase
+} from './ocp';
 
 const args: string[] = process.argv;
 const command: string = args[2];
+// status of project pods
 
 const run = async () => {
-	try {
-		const username: string = prompt('OCP Username: ');
-		const password: string = prompt('OCP Password: ');
-		console.clear();
+    try {
+        let loggedIn = await isUserLoggedIn();
+        if (!loggedIn) {
+            await logIntoOCP();
+        }
 
-		console.log("Logging into OCP...")
-		await logIntoOCP(username, password);
-		console.clear();
+        let ocpProjects: string[] = await getOCPProjects();
+        let chosenProject: inquirer.Answers = await inquirer.prompt([{
+        	type: "list",
+        	name: "projectName",
+        	message: "Please select a project:",
+        	choices: ocpProjects,
+        }])
 
-		const ocpProjects: string[] = await getOCPProjects();
-		const project: inquirer.Answers = await inquirer.prompt([{
-			type: "list",
-			name: "ocpProject",
-			message: "Please select a project:",
-			choices: ocpProjects,
-		}])
+        let projectName: string = chosenProject.projectName;
+        await switchOCPProjects(projectName);
 
-		const projectName: string = project.ocpProject;
-		await switchOCPProjects(projectName);
+        let ocpPods: string[] = await getOCPPods();
+        let chosenPod: inquirer.Answers = await inquirer.prompt([{
+        	type: "list",
+        	name: "podName",
+        	message: "Please select a pod:",
+        	choices: ocpPods,
+        }])
+        let podName: string = chosenPod.podName;
 
-
-		const ocpPods: string[] = await getOCPPods();
-
-
-		// await portForwardPod("string", 55432, 5432);
-		// console.log(ocpPods)
-
-	} catch (err) {
-		console.log('Handling: ', err);
-	}
-}
+        // await portForwardPod(podName, 55432, 5432);
+        await restorePostgresDatabase(podName, 'esofdb');
+    } catch (err) {
+        console.log('Handling: ', err);
+    }
+};
 run();
-
