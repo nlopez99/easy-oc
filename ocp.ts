@@ -3,7 +3,7 @@ import { PodSchema } from './types/PodSchema';
 import { ProjectsSchema } from './types/ProjectsSchema';
 import { readdir } from 'fs/promises';
 import inquirer = require('inquirer');
-const readlineSync = require('readline-sync');
+import readlineSync = require('readline-sync');
 
 export const logIntoOCP = async (): Promise<void> => {
     const username: string = readlineSync.question('OCP Username: ');
@@ -70,8 +70,23 @@ export const restorePostgresDatabase = async (podName: string, databaseName: str
 
     const restoreArgs = ['exec', podName, '--', 'bash', '-c', `psql ${databaseName} < /tmp/${dumpFile}`];
     const exitCode = await runCommandNoOutput('oc', restoreArgs);
-    if (exitCode === 0) console.log("Database Successfully Restored.")
-    else console.log("Database could not be restored.") 
+    if (exitCode === 0) console.log('Database Successfully Restored.');
+    else console.log('Database could not be restored.');
+};
+
+export const checkDatabaseIsEmpty = async (podName: string, databaseName: string): Promise<boolean> => {
+    const databaseQuery =
+        "select count(*) from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname not in ('pg_catalog', 'information_schema') and s.nspname not like 'pg_temp%';";
+    // On the postgresql versions <9.x, 76 is the default number of minimum tables in an empty database
+    const minNumberOfTables = 76;
+    const databaseCheckArgs = ['exec', podName, '--', 'bash', '-c', `psql ${databaseName} -c "${databaseQuery}"`];
+    const output = await runCommand('oc', databaseCheckArgs);
+    const splitOutput = output.split('\n');
+    let tableCount = parseInt(splitOutput[2].trim());
+    if (tableCount > minNumberOfTables) {
+        return false;
+    }
+    return true;
 };
 
 export const isUserLoggedIn = async (): Promise<boolean> => {
@@ -79,4 +94,33 @@ export const isUserLoggedIn = async (): Promise<boolean> => {
     let exitCode = await runCommandNoOutput('oc', isLoggedInArgs);
     if (exitCode === 0) return true;
     else return false;
+};
+
+export const selectProject = async (): Promise<void> => {
+    let ocpProjects: string[] = await getOCPProjects();
+    let chosenProject: inquirer.Answers = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'projectName',
+            message: 'Please select a project:',
+            choices: ocpProjects
+        }
+    ]);
+
+    let projectName: string = chosenProject.projectName;
+    await switchOCPProjects(projectName);
+};
+
+export const selectPod = async (): Promise<string> => {
+    let ocpPods: string[] = await getOCPPods();
+    let chosenPod: inquirer.Answers = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'podName',
+            message: 'Please select a pod:',
+            choices: ocpPods
+        }
+    ]);
+    let podName: string = chosenPod.podName;
+    return podName;
 };

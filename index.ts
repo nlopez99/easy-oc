@@ -1,49 +1,49 @@
-import inquirer = require('inquirer');
+#!/usr/bin/env node
+
+import readlineSync = require('readline-sync');
 import {
-    getOCPPods,
-    getOCPProjects,
-    switchOCPProjects,
+    selectProject,
+    selectPod,
     logIntoOCP,
     portForwardPod,
     isUserLoggedIn,
-    restorePostgresDatabase
+    restorePostgresDatabase,
+    checkDatabaseIsEmpty
 } from './ocp';
 
 const args: string[] = process.argv;
 const command: string = args[2];
-// status of project pods
 
-const run = async () => {
-    try {
-        let loggedIn = await isUserLoggedIn();
-        if (!loggedIn) {
-            await logIntoOCP();
-        }
+const run = async (command: string) => {
+    let loggedIn: boolean = await isUserLoggedIn();
+    if (!loggedIn) {
+        await logIntoOCP();
+    }
+    await selectProject();
 
-        let ocpProjects: string[] = await getOCPProjects();
-        let chosenProject: inquirer.Answers = await inquirer.prompt([{
-        	type: "list",
-        	name: "projectName",
-        	message: "Please select a project:",
-        	choices: ocpProjects,
-        }])
-
-        let projectName: string = chosenProject.projectName;
-        await switchOCPProjects(projectName);
-
-        let ocpPods: string[] = await getOCPPods();
-        let chosenPod: inquirer.Answers = await inquirer.prompt([{
-        	type: "list",
-        	name: "podName",
-        	message: "Please select a pod:",
-        	choices: ocpPods,
-        }])
-        let podName: string = chosenPod.podName;
-
-        // await portForwardPod(podName, 55432, 5432);
-        await restorePostgresDatabase(podName, 'esofdb');
-    } catch (err) {
-        console.log('Handling: ', err);
+    switch (command) {
+        case 'restoredb':
+            try {
+                let podName: string = await selectPod();
+                const databaseName: string = readlineSync.question('Database name: ');
+                const isDatabaseEmpty: boolean = await checkDatabaseIsEmpty(podName, databaseName);
+                if (isDatabaseEmpty) {
+                    console.log('Database is empty, restoring now...');
+                    await restorePostgresDatabase(podName, databaseName);
+                    break;
+                } else {
+                    console.log('Database is not empty, aborting restore.');
+                    break;
+                }
+            } catch (err) {
+                console.log('Handling: ', err);
+            }
+        case 'pf':
+            let podName: string = await selectPod();
+            const localPort: number = parseInt(readlineSync.question('Local Port: '));
+            const remotePort: number = parseInt(readlineSync.question('Remote Port: '));
+            await portForwardPod(podName, localPort, remotePort);
     }
 };
-run();
+
+run(command);
