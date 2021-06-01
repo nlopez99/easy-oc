@@ -43,7 +43,11 @@ const run = async (command: string) => {
             const localPort: number = parseInt(readlineSync.question('Local Port: '));
             const remotePort: number = parseInt(readlineSync.question('Remote Port: '));
             await portForwardPod(podName, localPort, remotePort);
-    }
+            
+        default:
+            console.log("Invalid option chosen. Please choose 'pf' or 'restoredb.")
 };
+    }
+        
 
 run(command);
